@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Means na prática: segmentando clientes — SJE Tech</title>
+<meta name="description" content="Aula de K-Means com código, explicações e arquivos para baixar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="../index.html">SJE Tech</a>
+    <nav class="site-nav" aria-label="Principal">
+      <a href="../index.html">Início</a>
+      <a href="../aulas/kmeans-rfm.html" aria-current="page">Aula de K-Means</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+<div class="lesson-layout">
+
+<aside class="sidebar" aria-label="Nesta aula">
+  <p class="title">Nesta aula</p>
+  <ul>
+    <li><a href="#objetivos">Objetivos</a></li>
+    <li><a href="#ideia">1. A ideia</a></li>
+    <li><a href="#dados">2. Os dados</a></li>
+    <li><a href="#rfm-conceito">3. O que é RFM</a></li>
+    <li><a href="#codigo">4. Passo a passo</a></li>
+    <li><a class="sub" href="#importar">Importar as bibliotecas</a></li><li><a class="sub" href="#carregar">Carregar o arquivo</a></li><li><a class="sub" href="#rfm">Montar a tabela RFM</a></li><li><a class="sub" href="#padronizar">Padronizar os dados</a></li><li><a class="sub" href="#cotovelo">Escolher o K</a></li><li><a class="sub" href="#aplicar">Aplicar o K-Means</a></li><li><a class="sub" href="#interpretar">Interpretar os grupos</a></li><li><a class="sub" href="#visualizar">Ver no gráfico</a></li>
+    <li><a href="#resultado">5. Lendo o resultado</a></li>
+    <li><a href="#desafio">6. Desafio</a></li>
+    <li><a href="#baixar">Baixar arquivos</a></li>
+  </ul>
+</aside>
+<article class="lesson">
+
+<nav class="breadcrumb" aria-label="Você está em">
+  <a href="../index.html">Início</a><span class="sep">&gt;</span><a href="../index.html">Aulas</a><span class="sep">&gt;</span><span class="current">K-Means</span>
+</nav>
+
+<h1>K-Means na prática: segmentando clientes</h1>
+<p class="lead">Vamos pegar o histórico de compras de uma loja e deixar o computador separar os clientes em grupos parecidos, sem dizer a ele quais são os grupos.</p>
+<ul class="tags"><li class="tag">PYTHON</li><li class="tag">PANDAS</li><li class="tag">SCIKIT-LEARN</li><li class="tag">K-MEANS</li></ul>
+<div class="btn-row">
+  <a class="btn btn-primary" href="#baixar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar notebook e dados</a>
+</div>
+
+<hr class="divider">
+
+<h2 id="objetivos">Objetivos</h2>
+<p>Ao final desta aula você será capaz de:</p>
+<ul>
+  <li>explicar com suas palavras o que o K-Means faz;</li>
+  <li>transformar uma lista de compras em uma tabela com um cliente por linha;</li>
+  <li>escolher o número de grupos com o método do cotovelo;</li>
+  <li>olhar a média de cada grupo e dar um nome para ele.</li>
+</ul>
+
+<h2 id="ideia">1. A ideia</h2>
+<p>Imagine que você tem uma loja e quer mandar uma promoção, mas não faz sentido mandar a mesma para todo mundo. Quem compra toda semana não precisa do mesmo desconto de quem sumiu há meses.</p>
+<p>O <strong>K-Means</strong> ajuda nisso. Ele é um modelo <strong>não supervisionado</strong>: a gente não entrega as respostas prontas, ele mesmo procura grupos nos dados. O funcionamento é simples:</p>
+<ol>
+  <li>Você escolhe quantos grupos quer (esse é o <strong>K</strong>).</li>
+  <li>O modelo coloca K pontos no meio dos dados, os <strong>centros</strong>.</li>
+  <li>Cada cliente vai para o centro mais perto dele.</li>
+  <li>Os centros se movem para o meio do seu grupo. Repete o passo 3 e 4 até parar de mudar.</li>
+</ol>
+<div class="note">
+  <span class="label">Resumindo</span>
+  <p>K-Means = agrupar coisas parecidas, medindo a distância entre elas.</p>
+</div>
+
+<h2 id="dados">2. Os dados</h2>
+<p>Usamos o arquivo <code>compras.csv</code>. Cada linha é <strong>um item comprado</strong> por um cliente. São 821 linhas, 415 compras e 60 clientes, de 05/10/2025 até 29/09/2026. Veja as primeiras linhas:</p>
+<div class="table-wrap"><table><thead><tr><th class="">InvoiceNo</th><th class="">InvoiceDate</th><th class="num">Quantity</th><th class="num">UnitPrice</th><th class="">CustomerID</th></tr></thead><tbody><tr><td class="">500001</td><td class="">2026-09-29</td><td class="num">5</td><td class="num">88.16</td><td class="">1001</td></tr><tr class="hl"><td class="">500002</td><td class="">2026-07-16</td><td class="num">2</td><td class="num">97.28</td><td class="">1001</td></tr><tr class="hl"><td class="">500002</td><td class="">2026-07-16</td><td class="num">5</td><td class="num">73.56</td><td class="">1001</td></tr><tr class="hl"><td class="">500002</td><td class="">2026-07-16</td><td class="num">4</td><td class="num">87.14</td><td class="">1001</td></tr><tr><td class="">500003</td><td class="">2026-07-24</td><td class="num">2</td><td class="num">95.85</td><td class="">1001</td></tr><tr><td class="">500004</td><td class="">2026-07-29</td><td class="num">3</td><td class="num">52.44</td><td class="">1001</td></tr><tr><td class="">500004</td><td class="">2026-07-29</td><td class="num">3</td><td class="num">48.18</td><td class="">1001</td></tr><tr><td class="">500005</td><td class="">2026-08-20</td><td class="num">1</td><td class="num">68.72</td><td class="">1001</td></tr></tbody></table></div>
+<p class="caption">As três linhas destacadas têm o mesmo InvoiceNo (500002): foi uma única compra com três itens.</p>
+
+<p>O que significa cada coluna:</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Coluna</th><th>O que é</th><th>Exemplo</th></tr></thead>
+<tbody>
+<tr><td class="mono-cell">InvoiceNo</td><td>Número da compra (nota). Uma compra pode ter vários itens, então o número se repete.</td><td class="mono-cell">500002</td></tr>
+<tr><td class="mono-cell">InvoiceDate</td><td>Dia em que a compra foi feita.</td><td class="mono-cell">2026-07-16</td></tr>
+<tr><td class="mono-cell">Quantity</td><td>Quantas unidades do item o cliente levou.</td><td class="mono-cell">5</td></tr>
+<tr><td class="mono-cell">UnitPrice</td><td>Preço de uma unidade, em reais.</td><td class="mono-cell">73.56</td></tr>
+<tr><td class="mono-cell">CustomerID</td><td>Código do cliente. É por ele que vamos agrupar tudo.</td><td class="mono-cell">1001</td></tr>
+</tbody></table></div>
+
+<p>Repare que não existe uma coluna com o valor gasto. Vamos calcular: o total de cada linha é <code>Quantity × UnitPrice</code>. Na primeira linha, 5 × 88,16 = R$ 440,80.</p>
+
+<h2 id="rfm-conceito">3. O que é RFM</h2>
+<p>O K-Means precisa de números que descrevam cada cliente. Uma forma clássica no comércio é o <strong>RFM</strong>, três perguntas sobre o cliente:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Letra</th><th>Nome</th><th>Pergunta</th><th>Como calculamos</th></tr></thead>
+<tbody>
+<tr><td><strong>R</strong></td><td>Recência</td><td>Há quantos dias ele comprou pela última vez?</td><td>Última data do arquivo menos a última compra dele</td></tr>
+<tr><td><strong>F</strong></td><td>Frequência</td><td>Quantas vezes ele comprou?</td><td>Contamos os números de compra diferentes</td></tr>
+<tr><td><strong>M</strong></td><td>Monetário</td><td>Quanto ele gastou no total?</td><td>Somamos o <code>Total</code> de todos os itens</td></tr>
+</tbody></table></div>
+<p>Recência baixa é bom (comprou há pouco). Frequência e Monetário altos são bons.</p>
+
+<h2 id="codigo">4. Passo a passo</h2>
+<p>O código abaixo é o mesmo do notebook. Você pode ir copiando célula por célula no Google Colab.</p>
+
+<h3 id="importar">Importar as bibliotecas</h3>
+<p><code>pandas</code> mexe com tabelas, <code>matplotlib</code> faz os gráficos e o <code>scikit-learn</code> traz o K-Means.</p>
+<pre><code><span class="c"># 1. Importar bibliotecas</span>
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from google.colab import files</code></pre>
+
+<h3 id="carregar">Carregar o arquivo</h3>
+<p>O <code>files.upload()</code> abre um botão para você escolher o <code>compras.csv</code> no seu computador. Depois o <code>read_csv</code> lê o arquivo, e <code>parse_dates</code> avisa que a coluna <code>InvoiceDate</code> é uma data, não um texto.</p>
+<pre><code><span class="c"># 2. Enviar o arquivo compras.csv</span>
+files.upload()
+df = pd.read_csv(&quot;compras.csv&quot;, parse_dates=[&quot;InvoiceDate&quot;])
+df.head()</code></pre>
+<div class="note warn">
+  <span class="label">Rodando fora do Colab?</span>
+  <p>Apague as linhas <code>from google.colab import files</code> e <code>files.upload()</code> e deixe o <code>compras.csv</code> na mesma pasta do notebook.</p>
+</div>
+
+<h3 id="rfm">Montar a tabela RFM</h3>
+<p>Primeiro criamos a coluna <code>Total</code>. Depois usamos o <code>groupby</code> para juntar todas as linhas de cada cliente e calcular R, F e M. A variável <code>ref</code> é a data da compra mais recente de todo o arquivo; ela é o nosso “hoje”.</p>
+<pre><code><span class="c"># 3. Montar a tabela RFM (uma linha por cliente)</span>
+df[&quot;Total&quot;] = df[&quot;Quantity&quot;] * df[&quot;UnitPrice&quot;]
+ref = df[&quot;InvoiceDate&quot;].max()
+
+rfm = df.groupby(&quot;CustomerID&quot;).agg(
+    Recencia=(&quot;InvoiceDate&quot;, lambda d: (ref - d.max()).days),
+    Frequencia=(&quot;InvoiceNo&quot;, &quot;nunique&quot;),
+    Monetario=(&quot;Total&quot;, &quot;sum&quot;))
+rfm.head()</code></pre>
+<p class="output-label">Resultado (5 primeiros clientes):</p>
+<div class="table-wrap"><table><thead><tr><th class="">CustomerID</th><th class="num">Recencia</th><th class="num">Frequencia</th><th class="num">Monetario</th></tr></thead><tbody><tr><td class="">1001</td><td class="num">0.0</td><td class="num">13.0</td><td class="num">4633.76</td></tr><tr><td class="">1002</td><td class="num">17.0</td><td class="num">16.0</td><td class="num">9668.80</td></tr><tr><td class="">1003</td><td class="num">11.0</td><td class="num">18.0</td><td class="num">7500.21</td></tr><tr><td class="">1004</td><td class="num">18.0</td><td class="num">15.0</td><td class="num">7211.79</td></tr><tr><td class="">1005</td><td class="num">3.0</td><td class="num">15.0</td><td class="num">7920.94</td></tr></tbody></table></div>
+<p>O cliente 1001, por exemplo, comprou no último dia do arquivo (recência 0), fez 13 compras e gastou R$ 4.633,76. Agora temos <strong>uma linha por cliente</strong>, que é o que o K-Means precisa.</p>
+
+<h3 id="padronizar">Padronizar os dados</h3>
+<p>Olhe as escalas: recência vai até uns 300 (dias), frequência até 18 e monetário passa de 10 mil. Como o K-Means mede distância, o dinheiro ia “gritar” mais alto que as outras colunas. O <code>StandardScaler</code> coloca tudo numa escala parecida, para as três contarem igual.</p>
+<pre><code><span class="c"># 4. Padronizar os dados</span>
+X = StandardScaler().fit_transform(rfm)</code></pre>
+
+<h3 id="cotovelo">Escolher o K</h3>
+<p>Quantos grupos? Testamos de 1 a 8 e anotamos o <strong>WCSS</strong>, que mede o quão espalhados estão os clientes dentro de cada grupo (quanto menor, mais juntinhos). Mais grupos sempre diminuem o WCSS, então procuramos o ponto em que a queda “estabiliza”, o cotovelo.</p>
+<pre><code><span class="c"># 5. Método do cotovelo: qual K escolher?</span>
+wcss = []
+for k in range(1, 9):
+    wcss.append(KMeans(n_clusters=k, random_state=42, n_init=10).fit(X).inertia_)
+
+plt.plot(range(1, 9), wcss, marker=&quot;o&quot;)
+plt.xlabel(&quot;Número de clusters (K)&quot;)
+plt.ylabel(&quot;WCSS (inércia)&quot;)
+plt.title(&quot;Método do cotovelo&quot;)
+plt.show()</code></pre>
+<figure>
+  <img src="../assets/img/cotovelo.png" alt="Gráfico do método do cotovelo: a curva cai rápido até K = 3 e depois quase estabiliza" width="640" height="360" loading="lazy">
+  <figcaption>A curva despenca até K = 3 e depois cai devagar. Escolhemos K = 3.</figcaption>
+</figure>
+
+<h3 id="aplicar">Aplicar o K-Means</h3>
+<p>Agora é só criar o modelo com <code>n_clusters=3</code> e pedir para ele agrupar. O <code>random_state=42</code> deixa o resultado igual toda vez que você rodar. O <code>fit_predict</code> devolve o grupo (0, 1 ou 2) de cada cliente, que guardamos na coluna <code>Cluster</code>.</p>
+<pre><code><span class="c"># 6. Aplicar o K-Means com K = 3</span>
+modelo = KMeans(n_clusters=3, init=&quot;k-means++&quot;, random_state=42, n_init=10)
+rfm[&quot;Cluster&quot;] = modelo.fit_predict(X)</code></pre>
+
+<h3 id="interpretar">Interpretar os grupos</h3>
+<p>O modelo só dá números: 0, 1 e 2. Quem dá sentido é a gente. Calculamos a média de R, F e M de cada grupo:</p>
+<pre><code><span class="c"># 7. Interpretar: média de R, F e M de cada grupo</span>
+rfm.groupby(&quot;Cluster&quot;).mean().round(1)</code></pre>
+<p class="output-label">Resultado:</p>
+<div class="table-wrap"><table><thead><tr><th class="">Cluster</th><th class="num">Recencia</th><th class="num">Frequencia</th><th class="num">Monetario</th><th class="num">Clientes</th></tr></thead><tbody><tr><td class="">0</td><td class="num">48.4</td><td class="num">6.0</td><td class="num">1169.6</td><td class="num">25.0</td></tr><tr class="hl"><td class="">1</td><td class="num">10.6</td><td class="num">15.6</td><td class="num">7483.5</td><td class="num">15.0</td></tr><tr><td class="">2</td><td class="num">257.1</td><td class="num">1.6</td><td class="num">177.5</td><td class="num">20.0</td></tr></tbody></table></div>
+<figure>
+  <img src="../assets/img/medias.png" alt="Três gráficos de barras comparando recência, frequência e valor gasto dos três grupos" width="800" height="300" loading="lazy">
+  <figcaption>As médias de cada grupo lado a lado.</figcaption>
+</figure>
+
+<h3 id="visualizar">Ver no gráfico</h3>
+<p>Cada bolinha é um cliente, pintado com a cor do seu grupo.</p>
+<pre><code><span class="c"># 8. Visualizar os grupos</span>
+plt.scatter(rfm[&quot;Frequencia&quot;], rfm[&quot;Monetario&quot;], c=rfm[&quot;Cluster&quot;], cmap=&quot;viridis&quot;)
+plt.xlabel(&quot;Frequência (nº de compras)&quot;)
+plt.ylabel(&quot;Monetário (R$)&quot;)
+plt.title(&quot;Clientes agrupados pelo K-Means&quot;)
+plt.show()</code></pre>
+<figure>
+  <img src="../assets/img/grupos.png" alt="Gráfico de dispersão com frequência no eixo x e valor gasto no eixo y, mostrando três grupos separados" width="640" height="400" loading="lazy">
+  <figcaption>Os grupos aparecem bem separados. No notebook as cores saem diferentes porque ele usa a paleta viridis.</figcaption>
+</figure>
+
+<h2 id="resultado">5. Lendo o resultado</h2>
+<p>Olhando as médias, dá para dar um nome para cada grupo e pensar numa ação:</p>
+<div class="table-wrap"><table><thead><tr><th>Grupo</th><th class="num">Clientes</th><th>Como são</th><th>O que fazer</th></tr></thead><tbody><tr><td><strong>Clientes fiéis</strong></td><td class="num">15</td><td>Compram quase toda semana e gastam bem mais que os outros.</td><td>Vale cuidar bem: programa de fidelidade, acesso antecipado a novidades.</td></tr><tr><td><strong>Clientes medianos</strong></td><td class="num">25</td><td>Compram com certa regularidade, mas gastam pouco por cliente.</td><td>Dá para estimular: cupom para a próxima compra, combos.</td></tr><tr><td><strong>Clientes sumidos</strong></td><td class="num">20</td><td>Compraram pouquíssimo e faz muito tempo que não aparecem.</td><td>Tentar reativar: mensagem de “sentimos sua falta” com desconto.</td></tr></tbody></table></div>
+<div class="note warn">
+  <span class="label">Os números dos grupos podem mudar</span>
+  <p>Em outro computador ou versão da biblioteca, o grupo “fiéis” pode sair como 0 em vez de 1. Não decore o número: sempre olhe a tabela de médias para saber quem é quem.</p>
+</div>
+
+<h2 id="desafio">6. Desafio</h2>
+<ol>
+  <li>Troque <code>n_clusters=3</code> por 4 e rode de novo. Os grupos continuam fazendo sentido? Qual deles foi dividido?</li>
+  <li>Tire a coluna <code>Monetario</code> e agrupe só com Recência e Frequência. O resultado muda muito?</li>
+  <li>Pule a padronização (passo 4) e compare as médias. O que aconteceu?</li>
+</ol>
+
+<h2 id="baixar">Baixar arquivos</h2>
+<div class="download-box">
+  <h3>Notebook da aula</h3>
+  <p><code>kmeans_rfm.ipynb</code> tem todo o código acima, pronto para rodar.</p>
+  <div class="btn-row">
+    <a class="btn btn-primary" href="../downloads/kmeans_rfm.ipynb" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar notebook</a>
+    <a class="btn btn-secondary" href="https://colab.research.google.com/github/LuccasAlencar/aulas-ml/blob/main/downloads/kmeans_rfm.ipynb" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Abrir no Colab</a>
+  </div>
+</div>
+<div class="download-box">
+  <h3>Dados de compras</h3>
+  <p><code>compras.csv</code> com 821 linhas, o mesmo arquivo usado na aula. Você vai precisar dele quando o notebook pedir o upload.</p>
+  <div class="btn-row">
+    <a class="btn btn-primary" href="../downloads/compras.csv" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar compras.csv</a>
+  </div>
+</div>
+
+</article>
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <strong>SJE Tech</strong>
+    Desenvolvimento de Sistemas • Ciência de Dados
+  </div>
+</footer>
+<script src="../js/script.js"></script>
+</body>
+</html>
